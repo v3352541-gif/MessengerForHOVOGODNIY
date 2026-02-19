@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Настройки группы - MIMIgram</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Roboto', sans-serif; background: #f5f5f5; }
+        
+        .header {
+            background: linear-gradient(135deg, #0088cc, #0077bb);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .header-left { display: flex; align-items: center; }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+        .header h1 { font-size: 20px; }
+        .header-actions { display: flex; gap: 10px; }
+        .header-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 20px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 50%;
+        }
+        .header-btn:hover { background: rgba(255,255,255,0.3); }
+        
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .group-header {
+            text-align: center;
+            padding: 30px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .group-avatar {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+        }
+        .group-name {
+            font-size: 24px;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+        .group-desc {
+            color: #666;
+            font-size: 15px;
+        }
+        
+        .section {
+            padding: 20px 30px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .section-title {
+            font-size: 16px;
+            font-weight: 600;
+            color: #0088cc;
+            margin-bottom: 15px;
+        }
+        
+        .member-item {
+            display: flex;
+            align-items: center;
+            padding: 12px 0;
+            border-bottom: 1px solid #f5f5f5;
+        }
+        .member-item:last-child { border-bottom: none; }
+        .member-avatar {
+            width: 44px;
+            height: 44px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 12px;
+        }
+        .member-info { flex: 1; }
+        .member-name { font-weight: 500; margin-bottom: 2px; }
+        .member-username { font-size: 13px; color: #666; }
+        .member-remove {
+            background: #dc3545;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        
+        .add-member-section {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        .add-member-input {
+            flex: 1;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+        }
+        .add-member-btn {
+            background: #0088cc;
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .add-member-btn:hover { background: #0077bb; }
+        
+        .action-btn {
+            width: 100%;
+            padding: 14px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+            margin-top: 10px;
+        }
+        .action-btn.danger {
+            background: #dc3545;
+            color: white;
+        }
+        .action-btn.danger:hover { background: #c82333; }
+        
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 2000;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+        .modal-content {
+            background: white;
+            border-radius: 16px;
+            padding: 24px;
+            max-width: 500px;
+            width: 100%;
+        }
+        .modal h2 { margin-bottom: 20px; }
+        .modal input, .modal textarea {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: 'Roboto', sans-serif;
+        }
+        .modal textarea { min-height: 80px; resize: vertical; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn {
+            flex: 1;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 15px;
+            font-weight: 500;
+        }
+        .modal-btn.cancel { background: #e0e0e0; }
+        .modal-btn.save { background: #0088cc; color: white; }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 3000;
+            animation: slideIn 0.3s;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .notification-title { font-weight: 500; margin-bottom: 4px; }
+        .notification-body { font-size: 14px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="header-left">
+            <button class="back-btn" onclick="goBack()">←</button>
+            <h1 id="headerTitle">Группа</h1>
+        </div>
+        <div class="header-actions">
+            <button class="header-btn" onclick="showEditModal()" id="settingsBtn">⚙️</button>
+            <button class="header-btn" onclick="goBack()">✕</button>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div class="group-header">
+            <img id="groupAvatar" src="default-avatar.png" class="group-avatar">
+            <div class="group-name" id="groupName">Название группы</div>
+            <div class="group-desc" id="groupDesc">Описание группы</div>
+        </div>
+        
+        <div class="section">
+            <div class="section-title">Участники: <span id="memberCount">0</span></div>
+            <div id="membersList"></div>
+        </div>
+        
+        <div class="section" id="addMemberSection" style="display:none">
+            <div class="section-title">Добавить участника</div>
+            <div class="add-member-section">
+                <input type="text" id="addMemberInput" placeholder="@username" class="add-member-input">
+                <button class="add-member-btn" onclick="addMember()">Добавить</button>
+            </div>
+        </div>
+        
+        <div class="section">
+            <button class="action-btn danger" onclick="leaveGroup()">Выйти из группы</button>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+        if (!token || !userId) location.href = 'login.html';
+        
+        const urlParams = new URLSearchParams(window.location.search);
+        const groupId = urlParams.get('id');
+        
+        let groupData = null;
+        
+        async function loadGroup() {
+            const res = await fetch(`/group/${groupId}`, { headers: { Authorization: token } });
+            groupData = await res.json();
+            
+            document.getElementById('headerTitle').textContent = groupData.name;
+            document.getElementById('groupAvatar').src = groupData.avatar || 'default-avatar.png';
+            document.getElementById('groupName').textContent = groupData.name;
+            document.getElementById('groupDesc').textContent = groupData.description || 'Нет описания';
+            document.getElementById('memberCount').textContent = groupData.members.length;
+            
+            // Show add member section only for creator
+            if (groupData.creator === userId) {
+                document.getElementById('addMemberSection').style.display = 'block';
+                document.getElementById('settingsBtn').style.display = 'block';
+            } else {
+                document.getElementById('settingsBtn').style.display = 'none';
+            }
+            
+            const list = document.getElementById('membersList');
+            list.innerHTML = '';
+            
+            groupData.members.forEach(member => {
+                const item = document.createElement('div');
+                item.className = 'member-item';
+                item.innerHTML = `
+                    <img src="${member.avatar || 'default-avatar.png'}" class="member-avatar">
+                    <div class="member-info">
+                        <div class="member-name">${member.firstName || ''} ${member.lastName || ''}</div>
+                        <div class="member-username">@${member.username}</div>
+                    </div>
+                    ${groupData.creator === userId && member.id !== userId ? 
+                        `<button class="member-remove" onclick="removeMember('${member.id}')">Удалить</button>` : ''}
+                `;
+                list.appendChild(item);
+            });
+        }
+        
+        async function addMember() {
+            const input = document.getElementById('addMemberInput');
+            const username = input.value.trim().replace('@', '');
+            if (!username) return;
+            
+            // Search user
+            const searchRes = await fetch(`/search?username=${username}`, { headers: { Authorization: token } });
+            const user = await searchRes.json();
+            
+            if (!user) {
+                showNotif('Ошибка', 'Пользователь не найден');
+                return;
+            }
+            
+            // Check if already member
+            if (groupData.members.find(m => m.id === user.id)) {
+                showNotif('Ошибка', 'Пользователь уже в группе');
+                return;
+            }
+            
+            // Add to group
+            const res = await fetch(`/group/${groupId}/addMember`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: token },
+                body: JSON.stringify({ userId: user.id })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                showNotif('Отлично!', `Вы добавили @${username} в группу`);
+                input.value = '';
+                loadGroup();
+            } else {
+                showNotif('Ошибка', data.message || 'Не удалось добавить участника');
+            }
+        }
+        
+        async function removeMember(memberId) {
+            if (!confirm('Удалить участника из группы?')) return;
+            
+            const res = await fetch(`/group/${groupId}/removeMember`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', Authorization: token },
+                body: JSON.stringify({ userId: memberId })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                showNotif('Удалено', 'Участник удалён из группы');
+                loadGroup();
+            }
+        }
+        
+        function leaveGroup() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Выйти из группы?</h2>
+                    <p style="color:#666;margin-bottom:20px">Вы точно хотите покинуть эту группу?</p>
+                    <div class="modal-buttons">
+                        <button class="modal-btn cancel" onclick="this.closest('.modal').remove()">Нет</button>
+                        <button class="modal-btn save" style="background:#dc3545" onclick="confirmLeave()">Да</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        async function confirmLeave() {
+            const res = await fetch(`/group/${groupId}/leave`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: token }
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                showNotif('Пока!', `Пользователь @${data.username} покинул группу`);
+                setTimeout(() => {
+                    location.href = 'main.html';
+                }, 2000);
+            }
+        }
+        
+        function showEditModal() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Изменить группу</h2>
+                    <label style="display:block;margin:10px 0">
+                        <div style="margin-bottom:8px;font-weight:500">Аватарка</div>
+                        <input type="file" id="editAvatar" accept="image/*">
+                    </label>
+                    <input type="text" id="editName" placeholder="Название" value="${groupData.name}">
+                    <textarea id="editDesc" placeholder="Описание">${groupData.description || ''}</textarea>
+                    <div class="modal-buttons">
+                        <button class="modal-btn cancel" onclick="this.closest('.modal').remove()">Отмена</button>
+                        <button class="modal-btn save" onclick="saveChanges()">Сохранить</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+        }
+        
+        async function saveChanges() {
+            const name = document.getElementById('editName').value.trim();
+            const desc = document.getElementById('editDesc').value.trim();
+            const file = document.getElementById('editAvatar').files[0];
+            
+            let avatar = groupData.avatar;
+            if (file) {
+                avatar = await new Promise(resolve => {
+                    const reader = new FileReader();
+                    reader.onload = e => resolve(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+            }
+            
+            const res = await fetch(`/group/${groupId}/update`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: token },
+                body: JSON.stringify({ name, description: desc, avatar })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                showNotif('Сохранено', 'Группа обновлена');
+                document.querySelector('.modal').remove();
+                loadGroup();
+            }
+        }
+        
+        function goBack() {
+            window.history.back();
+        }
+        
+        function showNotif(title, body) {
+            const n = document.createElement('div');
+            n.className = 'notification';
+            n.innerHTML = `<div class="notification-title">${title}</div><div class="notification-body">${body}</div>`;
+            document.body.appendChild(n);
+            setTimeout(() => n.remove(), 3000);
+        }
+        
+        loadGroup();
+    </script>
+</body>
+</html>

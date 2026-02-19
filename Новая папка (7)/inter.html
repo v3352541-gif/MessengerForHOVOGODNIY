@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIMIgram - Выбор устройства</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Roboto', sans-serif;
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        }
+        
+        .container {
+            text-align: center;
+            padding: 40px;
+        }
+        
+        .logo {
+            font-size: 80px;
+            margin-bottom: 20px;
+            animation: bounce 2s infinite;
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: translateY(0); }
+            50% { transform: translateY(-10px); }
+        }
+        
+        h1 {
+            color: white;
+            font-size: 36px;
+            margin-bottom: 15px;
+        }
+        
+        .subtitle {
+            color: rgba(255,255,255,0.9);
+            font-size: 18px;
+            margin-bottom: 50px;
+        }
+        
+        .devices {
+            display: flex;
+            gap: 30px;
+            justify-content: center;
+        }
+        
+        .device-card {
+            background: white;
+            border-radius: 20px;
+            padding: 40px 50px;
+            cursor: pointer;
+            transition: all 0.3s;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+        }
+        
+        .device-card:hover {
+            transform: translateY(-10px);
+            box-shadow: 0 15px 40px rgba(0,0,0,0.3);
+        }
+        
+        .device-icon {
+            font-size: 80px;
+            margin-bottom: 20px;
+        }
+        
+        .device-name {
+            font-size: 24px;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 10px;
+        }
+        
+        .device-desc {
+            font-size: 14px;
+            color: #666;
+        }
+        
+        @media (max-width: 768px) {
+            .devices {
+                flex-direction: column;
+                gap: 20px;
+            }
+            
+            .device-card {
+                padding: 30px 40px;
+            }
+            
+            h1 {
+                font-size: 28px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="logo">💬</div>
+        <h1>MIMIgram</h1>
+        <p class="subtitle">Выберите устройство для продолжения</p>
+        
+        <div class="devices">
+            <div class="device-card" onclick="selectDevice('mobile')">
+                <div class="device-icon">📱</div>
+                <div class="device-name">Телефон</div>
+                <div class="device-desc">Мобильная версия</div>
+            </div>
+            
+            <div class="device-card" onclick="selectDevice('desktop')">
+                <div class="device-icon">💻</div>
+                <div class="device-name">ПК</div>
+                <div class="device-desc">Полная версия</div>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        function selectDevice(type) {
+            localStorage.setItem('deviceType', type);
+            if (type === 'mobile') {
+                location.href = 'mainf.html';
+            } else {
+                location.href = 'main.html';
+            }
+        }
+    </script>
+</body>
+</html>

@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MIMIgram - Настройки</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+    <style>
+        * { box-sizing: border-box; }
+        body { font-family: 'Roboto', sans-serif; margin: 0; background: #f5f5f5; }
+        
+        .header {
+            background: linear-gradient(135deg, #0088cc, #0077bb);
+            color: white;
+            padding: 15px 20px;
+            display: flex;
+            align-items: center;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        .back-btn {
+            background: rgba(255,255,255,0.2);
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 8px 12px;
+            border-radius: 50%;
+            margin-right: 15px;
+        }
+        .back-btn:hover { background: rgba(255,255,255,0.3); }
+        .header h1 { margin: 0; font-size: 22px; }
+        
+        .container {
+            max-width: 800px;
+            margin: 20px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        
+        .tabs { display: flex; border-bottom: 1px solid #e0e0e0; background: white; }
+        .tab {
+            flex: 1;
+            padding: 16px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+            transition: all 0.3s;
+            font-weight: 500;
+        }
+        .tab:hover { background: #f5f5f5; }
+        .tab.active { border-bottom-color: #0088cc; color: #0088cc; }
+        
+        .tab-content { display: none; padding: 30px; }
+        .tab-content.active { display: block; }
+        
+        .profile-avatar-section { text-align: center; margin-bottom: 30px; }
+        .profile-avatar {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-bottom: 15px;
+            border: 4px solid #e0e0e0;
+        }
+        .avatar-upload-btn {
+            background: #0088cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+        }
+        
+        .form-group { margin-bottom: 20px; }
+        .form-group label {
+            display: block;
+            font-weight: 500;
+            margin-bottom: 8px;
+            color: #333;
+        }
+        .form-group input, .form-group textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            font-family: 'Roboto', sans-serif;
+        }
+        .form-group textarea { min-height: 100px; resize: vertical; }
+        
+        .save-btn {
+            width: 100%;
+            padding: 14px;
+            background: #0088cc;
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 500;
+            cursor: pointer;
+        }
+        .save-btn:hover { background: #0077bb; }
+        
+        .setting-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .setting-item:last-child { border-bottom: none; }
+        .setting-info { flex: 1; }
+        .setting-title { font-weight: 500; margin-bottom: 4px; }
+        .setting-desc { font-size: 13px; color: #666; }
+        
+        .toggle {
+            position: relative;
+            width: 50px;
+            height: 26px;
+        }
+        .toggle input { opacity: 0; width: 0; height: 0; }
+        .toggle-slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: 0.4s;
+            border-radius: 34px;
+        }
+        .toggle-slider:before {
+            position: absolute;
+            content: "";
+            height: 18px;
+            width: 18px;
+            left: 4px;
+            bottom: 4px;
+            background-color: white;
+            transition: 0.4s;
+            border-radius: 50%;
+        }
+        .toggle input:checked + .toggle-slider { background-color: #0088cc; }
+        .toggle input:checked + .toggle-slider:before { transform: translateX(24px); }
+        
+        select {
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            font-size: 15px;
+            background: white;
+            cursor: pointer;
+        }
+        
+        .wallpaper-preview {
+            width: 100%;
+            height: 150px;
+            border-radius: 8px;
+            background: #e5ddd5;
+            margin-bottom: 15px;
+            background-size: cover;
+            background-position: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+        }
+        
+        .wallpaper-options {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
+        }
+        .wallpaper-option {
+            width: 80px;
+            height: 80px;
+            border-radius: 8px;
+            cursor: pointer;
+            border: 3px solid transparent;
+            background-size: cover;
+            background-position: center;
+        }
+        .wallpaper-option.selected { border-color: #0088cc; }
+        .wallpaper-option.none {
+            background: linear-gradient(to bottom, #e5ddd5, #f0f0f0);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 12px;
+            color: #666;
+        }
+        
+        /* Blocked users list */
+        .blocked-list { max-height: 500px; overflow-y: auto; }
+        .blocked-item {
+            display: flex;
+            align-items: center;
+            padding: 15px;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .blocked-item:last-child { border-bottom: none; }
+        .blocked-avatar {
+            width: 50px;
+            height: 50px;
+            border-radius: 50%;
+            object-fit: cover;
+            margin-right: 12px;
+        }
+        .blocked-info { flex: 1; }
+        .blocked-name { font-weight: 500; margin-bottom: 2px; }
+        .blocked-username { font-size: 13px; color: #666; }
+        .unblock-btn {
+            background: #0088cc;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .unblock-btn:hover { background: #0077bb; }
+        
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state-icon { font-size: 64px; margin-bottom: 16px; }
+        
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            background: white;
+            padding: 16px 20px;
+            border-radius: 12px;
+            box-shadow: 0 4px 16px rgba(0,0,0,0.2);
+            z-index: 3000;
+            animation: slideIn 0.3s;
+        }
+        @keyframes slideIn {
+            from { transform: translateX(400px); opacity: 0; }
+            to { transform: translateX(0); opacity: 1; }
+        }
+        .notification-title { font-weight: 500; margin-bottom: 4px; }
+        .notification-body { font-size: 14px; color: #666; }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <button class="back-btn" onclick="location.href='main.html'">←</button>
+        <h1>Настройки</h1>
+    </div>
+    
+    <div class="container">
+        <div class="tabs">
+            <div class="tab active" data-tab="profile">Профиль</div>
+            <div class="tab" data-tab="privacy">Приватность</div>
+            <div class="tab" data-tab="appearance">Оформление</div>
+            <div class="tab" data-tab="blocked">Заблокированные</div>
+        </div>
+        
+        <!-- Профиль -->
+        <div class="tab-content active" id="profile">
+            <div class="profile-avatar-section">
+                <img id="profileAvatar" src="default-avatar.png" class="profile-avatar">
+                <br>
+                <label class="avatar-upload-btn">
+                    <input type="file" id="avatarInput" accept="image/*" style="display:none">
+                    Изменить фото
+                </label>
+            </div>
+            
+            <form id="profileForm">
+                <div class="form-group">
+                    <label>Имя</label>
+                    <input type="text" id="firstName" placeholder="Ваше имя">
+                </div>
+                
+                <div class="form-group">
+                    <label>Фамилия</label>
+                    <input type="text" id="lastName" placeholder="Ваша фамилия">
+                </div>
+                
+                <div class="form-group">
+                    <label>Имя пользователя</label>
+                    <input type="text" id="username" readonly style="background:#f5f5f5">
+                </div>
+                
+                <div class="form-group">
+                    <label>О себе</label>
+                    <textarea id="bio" placeholder="Расскажите о себе..."></textarea>
+                </div>
+                
+                <button type="submit" class="save-btn">Сохранить изменения</button>
+            </form>
+        </div>
+        
+        <!-- Приватность -->
+        <div class="tab-content" id="privacy">
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">Показывать статус "в сети"</div>
+                    <div class="setting-desc">Другие пользователи смогут видеть когда вы онлайн</div>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" id="showOnline" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">Последнее посещение</div>
+                    <div class="setting-desc">Кто может видеть время вашего последнего визита</div>
+                </div>
+                <select id="lastSeenPrivacy">
+                    <option value="everyone">Все</option>
+                    <option value="nobody">Никто</option>
+                    <option value="recently">Был недавно</option>
+                </select>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">Звук уведомлений</div>
+                    <div class="setting-desc">Воспроизводить звук при новых сообщениях</div>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" id="soundNotifications" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+            
+            <div class="setting-item">
+                <div class="setting-info">
+                    <div class="setting-title">Desktop уведомления</div>
+                    <div class="setting-desc">Показывать уведомления в системе</div>
+                </div>
+                <label class="toggle">
+                    <input type="checkbox" id="desktopNotifications" checked>
+                    <span class="toggle-slider"></span>
+                </label>
+            </div>
+        </div>
+        
+        <!-- Оформление -->
+        <div class="tab-content" id="appearance">
+            <h3>Обои чата</h3>
+            <div class="wallpaper-preview" id="wallpaperPreview">Предпросмотр обоев</div>
+            
+            <div class="wallpaper-options">
+                <div class="wallpaper-option none selected" data-wallpaper="">Без обоев</div>
+                <div class="wallpaper-option" data-wallpaper="https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=800" 
+                     style="background-image:url(https://images.unsplash.com/photo-1579546929518-9e396f3cc809?w=200)"></div>
+                <div class="wallpaper-option" data-wallpaper="https://images.unsplash.com/photo-1557683316-973673baf926?w=800" 
+                     style="background-image:url(https://images.unsplash.com/photo-1557683316-973673baf926?w=200)"></div>
+                <div class="wallpaper-option" data-wallpaper="https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=800" 
+                     style="background-image:url(https://images.unsplash.com/photo-1558591710-4b4a1ae0f04d?w=200)"></div>
+            </div>
+            
+            <label class="avatar-upload-btn">
+                <input type="file" id="customWallpaper" accept="image/*" style="display:none">
+                Загрузить свои обои
+            </label>
+        </div>
+        
+        <!-- Заблокированные -->
+        <div class="tab-content" id="blocked">
+            <h3 style="margin-bottom:20px">Заблокированные пользователи</h3>
+            <div id="blockedList" class="blocked-list"></div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+        if (!token || !userId) location.href = 'login.html';
+        
+        let currentAvatar = null;
+        let currentWallpaper = localStorage.getItem('wallpaper') || '';
+        
+        // Load profile
+        async function loadProfile() {
+            const res = await fetch('/profile', { headers: { Authorization: token } });
+            const profile = await res.json();
+            
+            document.getElementById('profileAvatar').src = profile.avatar || 'default-avatar.png';
+            document.getElementById('firstName').value = profile.firstName || '';
+            document.getElementById('lastName').value = profile.lastName || '';
+            document.getElementById('username').value = profile.username || '';
+            document.getElementById('bio').value = profile.bio || '';
+            currentAvatar = profile.avatar;
+        }
+        
+        // Load settings
+        function loadSettings() {
+            document.getElementById('showOnline').checked = localStorage.getItem('showOnline') !== 'false';
+            document.getElementById('lastSeenPrivacy').value = localStorage.getItem('lastSeenPrivacy') || 'everyone';
+            document.getElementById('soundNotifications').checked = localStorage.getItem('soundNotifications') !== 'false';
+            document.getElementById('desktopNotifications').checked = localStorage.getItem('desktopNotifications') !== 'false';
+            
+            updateWallpaperPreview(currentWallpaper);
+            document.querySelectorAll('.wallpaper-option').forEach(opt => {
+                if (opt.getAttribute('data-wallpaper') === currentWallpaper) {
+                    opt.classList.add('selected');
+                } else {
+                    opt.classList.remove('selected');
+                }
+            });
+        }
+        
+        // Load blocked users
+        async function loadBlockedUsers() {
+            const blockedIds = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+            const list = document.getElementById('blockedList');
+            
+            if (blockedIds.length === 0) {
+                list.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-state-icon">🔓</div>
+                        <p>Нет заблокированных пользователей</p>
+                    </div>
+                `;
+                return;
+            }
+            
+            list.innerHTML = '';
+            
+            for (const uid of blockedIds) {
+                try {
+                    const res = await fetch(`/profile/${uid}`, { headers: { Authorization: token } });
+                    const profile = await res.json();
+                    
+                    const item = document.createElement('div');
+                    item.className = 'blocked-item';
+                    item.innerHTML = `
+                        <img src="${profile.avatar || 'default-avatar.png'}" class="blocked-avatar">
+                        <div class="blocked-info">
+                            <div class="blocked-name">${profile.firstName || ''} ${profile.lastName || ''}</div>
+                            <div class="blocked-username">@${profile.username}</div>
+                        </div>
+                        <button class="unblock-btn" onclick="unblockUser('${uid}')">Разблокировать</button>
+                    `;
+                    list.appendChild(item);
+                } catch (err) {
+                    console.error('Error loading blocked user:', err);
+                }
+            }
+        }
+        
+        // Unblock user
+        function unblockUser(uid) {
+            const blockedUsers = JSON.parse(localStorage.getItem('blockedUsers') || '[]');
+            const newBlocked = blockedUsers.filter(id => id !== uid);
+            localStorage.setItem('blockedUsers', JSON.stringify(newBlocked));
+            showNotif('Разблокировано', 'Пользователь разблокирован');
+            loadBlockedUsers();
+        }
+        
+        // Update wallpaper preview
+        function updateWallpaperPreview(wallpaper) {
+            const preview = document.getElementById('wallpaperPreview');
+            if (wallpaper) {
+                preview.style.backgroundImage = `url(${wallpaper})`;
+                preview.textContent = '';
+            } else {
+                preview.style.backgroundImage = '';
+                preview.textContent = 'Предпросмотр обоев';
+            }
+        }
+        
+        // Tabs
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+                
+                tab.classList.add('active');
+                const tabName = tab.getAttribute('data-tab');
+                document.getElementById(tabName).classList.add('active');
+                
+                if (tabName === 'blocked') loadBlockedUsers();
+            };
+        });
+        
+        // Avatar upload
+        document.getElementById('avatarInput').onchange = function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    currentAvatar = ev.target.result;
+                    document.getElementById('profileAvatar').src = currentAvatar;
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        
+        // Save profile
+        document.getElementById('profileForm').onsubmit = async (e) => {
+            e.preventDefault();
+            
+            const firstName = document.getElementById('firstName').value;
+            const lastName = document.getElementById('lastName').value;
+            const bio = document.getElementById('bio').value;
+            
+            if (bio.length > 200) {
+                showNotif('Ошибка', 'Описание слишком длинное (максимум 200 символов)');
+                return;
+            }
+            
+            const res = await fetch('/updateProfile', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: token },
+                body: JSON.stringify({ firstName, lastName, avatar: currentAvatar, bio })
+            });
+            
+            const data = await res.json();
+            if (data.success) {
+                showNotif('Успешно', 'Профиль обновлён');
+            } else {
+                showNotif('Ошибка', 'Не удалось обновить профиль');
+            }
+        };
+        
+        // Privacy settings
+        document.getElementById('showOnline').onchange = e => {
+            localStorage.setItem('showOnline', e.target.checked);
+            showNotif('Сохранено', 'Настройка обновлена');
+        };
+        
+        document.getElementById('lastSeenPrivacy').onchange = e => {
+            localStorage.setItem('lastSeenPrivacy', e.target.value);
+            showNotif('Сохранено', 'Настройка обновлена');
+        };
+        
+        document.getElementById('soundNotifications').onchange = e => {
+            localStorage.setItem('soundNotifications', e.target.checked);
+            showNotif('Сохранено', 'Настройка обновлена');
+        };
+        
+        document.getElementById('desktopNotifications').onchange = e => {
+            localStorage.setItem('desktopNotifications', e.target.checked);
+            
+            if (e.target.checked && Notification.permission === 'default') {
+                Notification.requestPermission().then(permission => {
+                    if (permission !== 'granted') {
+                        e.target.checked = false;
+                        localStorage.setItem('desktopNotifications', false);
+                        showNotif('Ошибка', 'Разрешение на уведомления отклонено');
+                    }
+                });
+            }
+            
+            showNotif('Сохранено', 'Настройка обновлена');
+        };
+        
+        // Wallpaper selection
+        document.querySelectorAll('.wallpaper-option').forEach(opt => {
+            opt.onclick = () => {
+                document.querySelectorAll('.wallpaper-option').forEach(o => o.classList.remove('selected'));
+                opt.classList.add('selected');
+                
+                const wallpaper = opt.getAttribute('data-wallpaper');
+                currentWallpaper = wallpaper;
+                localStorage.setItem('wallpaper', wallpaper);
+                updateWallpaperPreview(wallpaper);
+                showNotif('Сохранено', 'Обои обновлены');
+            };
+        });
+        
+        // Custom wallpaper
+        document.getElementById('customWallpaper').onchange = function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    currentWallpaper = ev.target.result;
+                    localStorage.setItem('wallpaper', currentWallpaper);
+                    updateWallpaperPreview(currentWallpaper);
+                    
+                    document.querySelectorAll('.wallpaper-option').forEach(o => o.classList.remove('selected'));
+                    showNotif('Сохранено', 'Обои обновлены');
+                };
+                reader.readAsDataURL(file);
+            }
+        };
+        
+        // Notification
+        function showNotif(title, body) {
+            const n = document.createElement('div');
+            n.className = 'notification';
+            n.innerHTML = `<div class="notification-title">${title}</div><div class="notification-body">${body}</div>`;
+            document.body.appendChild(n);
+            setTimeout(() => n.remove(), 3000);
+        }
+        
+        // Init
+        loadProfile();
+        loadSettings();
+    </script>
+</body>
+</html>

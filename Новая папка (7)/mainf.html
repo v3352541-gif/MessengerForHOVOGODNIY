@@ -1,0 +1,1075 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>MIMIgram</title>
+    <link rel="icon" href="favicon.png" type="image/png">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;600&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Roboto', sans-serif; height: 100vh; overflow: hidden; }
+        
+        #header {
+            background: linear-gradient(135deg, #0088cc, #0066aa);
+            color: white;
+            padding: 12px 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+        }
+        
+        #search { flex: 1; padding: 10px 16px; border: none; border-radius: 20px; font-size: 15px; background: rgba(255,255,255,0.9); }
+        .header-btn { background: rgba(255,255,255,0.2); border: none; color: white; padding: 10px; border-radius: 50%; cursor: pointer; font-size: 20px; width: 40px; height: 40px; }
+        .header-btn:hover { background: rgba(255,255,255,0.3); }
+        
+        #main { display: flex; height: calc(100vh - 64px); }
+        
+        #sidebar { 
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            background: white;
+            display: flex;
+            flex-direction: column;
+            z-index: 10;
+            transition: transform 0.3s;
+        }
+        #sidebar.hidden { transform: translateX(-100%); }
+        
+        #chatArea.active ~ #header #menuBtn { display: block !important; }
+        #chatArea.active ~ #header #search { display: none !important; }
+        
+        .tabs { display: flex; border-bottom: 1px solid #ddd; }
+        .tab {
+            flex: 1;
+            padding: 14px;
+            text-align: center;
+            cursor: pointer;
+            border-bottom: 3px solid transparent;
+            font-weight: 500;
+            color: #666;
+        }
+        .tab.active { color: #0088cc; border-bottom-color: #0088cc; }
+        .tab:active { background: #f5f5f5; }
+        
+        #chatsList { flex: 1; overflow-y: auto; }
+        .chat-item { display: flex; padding: 14px; cursor: pointer; border-bottom: 1px solid #f0f0f0; }
+        .chat-item:active { background: #f8f8f8; }
+        .chat-item.active { background: #e3f2fd; }
+        .chat-avatar { width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 12px; }
+        .online-badge { position: absolute; bottom: 0; right: 12px; width: 14px; height: 14px; background: #4caf50; border: 2px solid white; border-radius: 50%; }
+        .chat-info { flex: 1; min-width: 0; }
+        .chat-name { font-weight: 500; margin-bottom: 4px; }
+        .chat-status { font-size: 13px; color: #666; }
+        .chat-status.online { color: #4caf50; }
+        
+        #chatArea { 
+            position: absolute;
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            background: #e5ddd5;
+            transform: translateX(100%);
+            transition: transform 0.3s;
+            z-index: 5;
+        }
+        #chatArea.active { transform: translateX(0); }
+        
+        #welcomeScreen {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            height: 100%;
+            text-align: center;
+        }
+        
+        #welcomeScreen .icon { font-size: 80px; margin-bottom: 20px; }
+        #welcomeScreen h2 { color: #0088cc; margin-bottom: 10px; font-size: 28px; }
+        #welcomeScreen p { color: #666; font-size: 16px; }
+        
+        #chatContent { display: none; flex-direction: column; height: 100%; }
+        #chatContent.active { display: flex; }
+        
+        #chatHeader { background: white; padding: 12px 16px; display: flex; align-items: center; border-bottom: 1px solid #ddd; }
+        .back-btn { display: block; background: none; border: none; font-size: 24px; color: #0088cc; margin-right: 10px; cursor: pointer; }
+        #chatHeaderAvatar { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; margin-right: 12px; cursor: pointer; }
+        .chat-header-info { flex: 1; cursor: pointer; }
+        #chatHeaderName { font-weight: 500; font-size: 16px; margin-bottom: 2px; }
+        #chatHeaderStatus { font-size: 13px; color: #666; }
+        #typingIndicator { display: none; color: #0088cc; font-size: 13px; font-style: italic; }
+        
+        #messages { flex: 1; overflow-y: auto; padding: 20px 12px; display: flex; flex-direction: column; -webkit-overflow-scrolling: touch; }
+        .date-separator { text-align: center; margin: 20px 0; }
+        .date-separator span { background: rgba(255,255,255,0.8); padding: 4px 12px; border-radius: 12px; font-size: 13px; color: #666; }
+        
+        .message { 
+            max-width: 85%;
+            margin: 4px 0;
+            padding: 8px 12px;
+            border-radius: 12px;
+            position: relative;
+            word-wrap: break-word;
+        }
+        .message.sent { align-self: flex-end; background: #dcf8c6; border-bottom-right-radius: 4px; }
+        .message.received { align-self: flex-start; background: white; border-bottom-left-radius: 4px; box-shadow: 0 1px 2px rgba(0,0,0,0.1); }
+        
+        .message-reply { background: rgba(0,0,0,0.05); border-left: 3px solid #0088cc; padding: 6px 8px; margin-bottom: 6px; border-radius: 4px; font-size: 13px; }
+        .message-reply-sender { color: #0088cc; font-weight: 500; }
+        .message-text { margin-bottom: 4px; }
+        .message-image { max-width: 100%; border-radius: 8px; margin-bottom: 4px; cursor: pointer; }
+        .message-time { font-size: 11px; color: #666; text-align: right; margin-top: 4px; }
+        .message-edited { font-size: 11px; color: #999; font-style: italic; }
+        
+        .reactions { display: flex; gap: 4px; margin-top: 4px; flex-wrap: wrap; }
+        .reaction { background: rgba(0,0,0,0.05); padding: 2px 6px; border-radius: 12px; font-size: 13px; cursor: pointer; }
+        .reaction.mine { background: rgba(0,136,204,0.2); }
+        
+        .message-menu {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            background: white;
+            border-radius: 16px 16px 0 0;
+            box-shadow: 0 -4px 16px rgba(0,0,0,0.2);
+            padding: 20px;
+            z-index: 1000;
+            animation: slideUp 0.3s;
+        }
+        @keyframes slideUp {
+            from { transform: translateY(100%); }
+            to { transform: translateY(0); }
+        }
+        .message-menu-btn {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            background: #f5f5f5;
+            text-align: left;
+            cursor: pointer;
+            border-radius: 8px;
+            margin: 8px 0;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+        .message-menu-btn:active { background: #e0e0e0; }
+        .message-menu-btn.danger { color: #dc3545; }
+        .message-menu-reactions {
+            display: flex;
+            gap: 8px;
+            justify-content: space-around;
+            padding: 16px 0;
+            border-top: 1px solid #f0f0f0;
+            border-bottom: 1px solid #f0f0f0;
+            margin: 8px 0;
+        }
+        .reaction-btn {
+            font-size: 32px;
+            background: none;
+            border: none;
+            cursor: pointer;
+            padding: 8px;
+        }
+        
+        #replyPreview { display: none; background: white; border-left: 4px solid #0088cc; padding: 10px 12px; margin: 0 16px 10px; border-radius: 6px; position: relative; }
+        #replyPreview.show { display: block; }
+        .reply-close { position: absolute; top: 8px; right: 8px; background: none; border: none; font-size: 20px; cursor: pointer; color: #999; }
+        .reply-label { font-size: 13px; color: #0088cc; font-weight: 500; margin-bottom: 4px; }
+        .reply-content { font-size: 14px; color: #666; }
+        
+        #inputArea { background: white; padding: 12px 16px; display: flex; gap: 8px; align-items: flex-end; border-top: 1px solid #ddd; }
+        .input-btn { background: none; border: none; font-size: 24px; cursor: pointer; padding: 8px; color: #666; touch-action: manipulation; }
+        .input-btn:active { color: #0088cc; }
+        #messageInput { 
+            flex: 1;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            padding: 10px 16px;
+            font-size: 16px;
+            resize: none;
+            max-height: 120px;
+            font-family: 'Roboto', sans-serif;
+            -webkit-user-select: text;
+            user-select: text;
+        }
+        #messageInput:focus { outline: none; border-color: #0088cc; }
+        #sendBtn { background: linear-gradient(135deg, #0088cc, #0066aa); color: white; border: none; border-radius: 50%; width: 44px; height: 44px; font-size: 20px; cursor: pointer; }
+        
+        #imagePreview { display: none; padding: 12px 16px; background: white; border-top: 1px solid #ddd; position: relative; }
+        #imagePreview img { max-width: 200px; max-height: 150px; border-radius: 8px; }
+        #removeImage { position: absolute; top: 16px; left: 180px; background: rgba(0,0,0,0.6); color: white; border: none; border-radius: 50%; width: 28px; height: 28px; cursor: pointer; font-size: 18px; }
+        
+        .modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 2000; align-items: center; justify-content: center; padding: 20px; }
+        .modal-content { background: white; border-radius: 16px; padding: 24px; max-width: 90%; width: 100%; max-height: 80vh; overflow-y: auto; }
+        .modal h2 { margin-bottom: 20px; }
+        .modal input, .modal textarea { width: 100%; padding: 12px; margin: 10px 0; border: 1px solid #ddd; border-radius: 8px; font-size: 15px; font-family: 'Roboto', sans-serif; }
+        .modal textarea { min-height: 100px; resize: vertical; }
+        .modal-buttons { display: flex; gap: 10px; margin-top: 20px; }
+        .modal-btn { flex: 1; padding: 12px; border: none; border-radius: 8px; cursor: pointer; font-size: 15px; font-weight: 500; }
+        .modal-btn.cancel { background: #e0e0e0; }
+        .modal-btn.save { background: #0088cc; color: white; }
+        
+        .notification { position: fixed; top: 20px; left: 10px; right: 10px; background: white; padding: 16px; border-radius: 12px; box-shadow: 0 4px 16px rgba(0,0,0,0.2); z-index: 3000; animation: slideIn 0.3s; }
+        @keyframes slideIn { from { transform: translateY(-100px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+        .notification-title { font-weight: 500; margin-bottom: 4px; }
+        .notification-body { font-size: 14px; color: #666; }
+        
+        ::-webkit-scrollbar { width: 0; height: 0; }
+        
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+        
+        @keyframes bounce {
+            0%, 100% { transform: scale(1); }
+            50% { transform: scale(1.1); }
+        }
+    </style>
+</head>
+<body>
+    <div id="header">
+        <button class="header-btn" id="menuBtn" onclick="toggleSidebar()" style="display:none">☰</button>
+        <input type="text" id="search" placeholder="Поиск...">
+        <button class="header-btn" onclick="createGroup()">👥</button>
+        <button class="header-btn" onclick="location.href='settings.html'">⚙️</button>
+    </div>
+    
+    <div id="main">
+        <div id="sidebar">
+            <div class="tabs">
+                <div class="tab active" data-tab="personal">Личные</div>
+                <div class="tab" data-tab="groups">Группы</div>
+            </div>
+            <div id="chatsList"></div>
+        </div>
+        
+        <div id="chatArea">
+            <div id="welcomeScreen">
+                <div class="icon">💬</div>
+                <h2>MIMIgram</h2>
+                <p>Выберите чат для начала общения</p>
+            </div>
+            
+            <div id="chatContent">
+                <div id="chatHeader">
+                    <button class="back-btn" onclick="closeChat()">←</button>
+                    <img id="chatHeaderAvatar" src="default-avatar.png">
+                    <div class="chat-header-info" onclick="openProfile()">
+                        <div id="chatHeaderName"></div>
+                        <div id="chatHeaderStatus"></div>
+                        <div id="typingIndicator">печатает...</div>
+                    </div>
+                    <button class="call-btn" id="callBtn" onclick="startVoiceCall()" style="display:none;background:#4caf50;border:none;color:white;width:40px;height:40px;border-radius:50%;cursor:pointer;font-size:20px">📞</button>
+                </div>
+                
+                <div id="messages"></div>
+                
+                <div id="replyPreview">
+                    <button class="reply-close" onclick="cancelReply()">×</button>
+                    <div class="reply-label">Ответ на:</div>
+                    <div class="reply-content"></div>
+                </div>
+                
+                <div id="imagePreview">
+                    <img id="previewImg">
+                    <button id="removeImage" onclick="removeImage()">×</button>
+                </div>
+                
+                <div id="inputArea">
+                    <input type="file" id="imageInput" accept="image/*" style="display:none">
+                    <button class="input-btn" onclick="document.getElementById('imageInput').click()">📎</button>
+                    <button class="input-btn" onclick="focusInput()" title="Открыть клавиатуру">⌨️</button>
+                    <textarea id="messageInput" placeholder="Сообщение..." rows="1" autocomplete="off" autocorrect="on" autocapitalize="sentences"></textarea>
+                    <button id="sendBtn" onclick="sendMessage()">➤</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const token = localStorage.getItem('token');
+        const userId = localStorage.getItem('userId');
+        if (!token || !userId) location.href = 'login.html';
+        
+        let socket = null;
+        let currentChat = null;
+        let currentChatData = null;
+        let currentTab = 'personal';
+        let replyTo = null;
+        let imageData = null;
+        
+        const settings = {
+            showOnline: localStorage.getItem('showOnline') !== 'false',
+            wallpaper: localStorage.getItem('wallpaper'),
+            blockedUsers: JSON.parse(localStorage.getItem('blockedUsers') || '[]')
+        };
+        
+        if (settings.wallpaper) {
+            document.getElementById('chatArea').style.backgroundImage = `url(${settings.wallpaper})`;
+        }
+        
+        function initSocket() {
+            socket = io();
+            socket.on('connect', () => socket.emit('authenticate', token));
+            socket.on('user-status', data => updateUserStatus(data.userId, data.online));
+            socket.on('new-message', data => {
+                if (data.chatId === currentChat) loadMessages(currentChat);
+                playSound();
+                showNotif('Новое сообщение', data.message.text || 'Вложение');
+            });
+            socket.on('message-updated', data => {
+                if (data.chatId === currentChat) loadMessages(currentChat);
+            });
+            socket.on('user-typing', data => {
+                if (data.chatId === currentChat) {
+                    document.getElementById('typingIndicator').style.display = 'block';
+                    document.getElementById('chatHeaderStatus').style.display = 'none';
+                }
+            });
+            socket.on('user-stop-typing', data => {
+                if (data.chatId === currentChat) {
+                    document.getElementById('typingIndicator').style.display = 'none';
+                    document.getElementById('chatHeaderStatus').style.display = 'block';
+                }
+            });
+        }
+        
+        function updateUserStatus(uid, online) {
+            const item = document.querySelector(`[data-chat="${uid}"]`);
+            if (item) {
+                const status = item.querySelector('.chat-status');
+                if (online && settings.showOnline) {
+                    if (status) {
+                        status.textContent = 'в сети';
+                        status.classList.add('online');
+                    }
+                } else {
+                    if (status) {
+                        status.textContent = '';
+                        status.classList.remove('online');
+                    }
+                }
+            }
+        }
+        
+        async function loadChats() {
+            const res = await fetch('/chats', { headers: { Authorization: token } });
+            const chats = await res.json();
+            
+            const list = document.getElementById('chatsList');
+            list.innerHTML = '';
+            
+            let filtered = chats.filter(c => {
+                if (settings.blockedUsers.includes(c.id)) return false;
+                if (currentTab === 'personal') return !c.isGroup;
+                return c.isGroup;
+            });
+            
+            filtered.forEach(chat => {
+                const div = document.createElement('div');
+                div.className = 'chat-item';
+                div.setAttribute('data-chat', chat.id);
+                if (chat.id === currentChat) div.classList.add('active');
+                
+                const name = chat.isGroup ? chat.name : `${chat.firstName || ''} ${chat.lastName || ''}`.trim() || chat.username;
+                
+                div.innerHTML = `
+                    <div style="position:relative">
+                        <img class="chat-avatar" src="${chat.avatar || 'default-avatar.png'}">
+                        ${chat.online && settings.showOnline && !chat.isGroup ? '<div class="online-badge"></div>' : ''}
+                    </div>
+                    <div class="chat-info">
+                        <div class="chat-name">${name}</div>
+                        <div class="chat-status ${chat.online && settings.showOnline ? 'online' : ''}">
+                            ${chat.online && settings.showOnline && !chat.isGroup ? 'в сети' : ''}
+                        </div>
+                    </div>
+                `;
+                
+                div.onclick = () => openChat(chat);
+                list.appendChild(div);
+            });
+        }
+        
+        function openChat(chat) {
+            currentChat = chat.id;
+            currentChatData = chat;
+            
+            document.querySelectorAll('.chat-item').forEach(i => i.classList.remove('active'));
+            document.querySelector(`[data-chat="${chat.id}"]`)?.classList.add('active');
+            
+            document.getElementById('sidebar').classList.add('hidden');
+            document.getElementById('welcomeScreen').style.display = 'none';
+            document.getElementById('chatContent').classList.add('active');
+            document.getElementById('chatArea').classList.add('active');
+            
+            // Show menu button, hide search
+            document.getElementById('menuBtn').style.display = 'block';
+            document.getElementById('search').style.display = 'none';
+            
+            const name = chat.isGroup ? chat.name : `${chat.firstName || ''} ${chat.lastName || ''}`.trim() || chat.username;
+            document.getElementById('chatHeaderAvatar').src = chat.avatar || 'default-avatar.png';
+            document.getElementById('chatHeaderName').textContent = name;
+            
+            const s = document.getElementById('chatHeaderStatus');
+            if (chat.online && settings.showOnline && !chat.isGroup) {
+                s.textContent = 'в сети';
+                s.classList.add('online');
+            } else {
+                s.textContent = '';
+                s.classList.remove('online');
+            }
+            
+            updateCallButton();
+            loadMessages(chat.id);
+        }
+        
+        function closeChat() {
+            document.getElementById('sidebar').classList.remove('hidden');
+            document.getElementById('chatArea').classList.remove('active');
+            document.getElementById('welcomeScreen').style.display = 'flex';
+            document.getElementById('chatContent').classList.remove('active');
+            
+            // Hide menu button, show search
+            document.getElementById('menuBtn').style.display = 'none';
+            document.getElementById('search').style.display = 'block';
+            
+            currentChat = null;
+        }
+        
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            if (sidebar.classList.contains('hidden')) {
+                sidebar.classList.remove('hidden');
+            } else {
+                sidebar.classList.add('hidden');
+            }
+        }
+        
+        function focusInput() {
+            const input = document.getElementById('messageInput');
+            input.focus();
+            // Force keyboard on iOS
+            if (/iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+                input.click();
+            }
+        }
+        
+        async function loadMessages(chatId) {
+            const url = currentChatData?.isGroup ? `/group/${chatId}/messages` : `/messages/${chatId}`;
+            const res = await fetch(url, { headers: { Authorization: token } });
+            const msgs = await res.json();
+            
+            const container = document.getElementById('messages');
+            container.innerHTML = '';
+            
+            let lastDate = '';
+            
+            msgs.forEach(msg => {
+                if (msg.deleted) {
+                    const d = document.createElement('div');
+                    d.className = `message ${msg.sent ? 'sent' : 'received'}`;
+                    d.innerHTML = '<div style="font-style:italic;color:#999">Сообщение удалено</div>';
+                    container.appendChild(d);
+                    return;
+                }
+                
+                const date = new Date(msg.time).toLocaleDateString('ru');
+                if (date !== lastDate) {
+                    lastDate = date;
+                    const sep = document.createElement('div');
+                    sep.className = 'date-separator';
+                    sep.innerHTML = `<span>${date}</span>`;
+                    container.appendChild(sep);
+                }
+                
+                const d = document.createElement('div');
+                d.className = `message ${msg.sent ? 'sent' : 'received'}`;
+                d.setAttribute('data-id', msg.id);
+                
+                let html = '';
+                
+                if (msg.replyTo) {
+                    html += `
+                        <div class="message-reply">
+                            <div class="message-reply-sender">${msg.replyTo.senderName || 'Пользователь'}</div>
+                            <div>${msg.replyTo.text || 'Вложение'}</div>
+                        </div>
+                    `;
+                }
+                
+                if (msg.text) html += `<div class="message-text">${msg.text}</div>`;
+                if (msg.image) html += `<img class="message-image" src="${msg.image}" onclick="viewImage('${msg.image}')">`;
+                
+                if (msg.reactions?.length) {
+                    html += '<div class="reactions">';
+                    msg.reactions.forEach(r => {
+                        const mine = r.users.includes(userId);
+                        html += `<span class="reaction ${mine ? 'mine' : ''}" onclick="react('${msg.id}','${r.emoji}')">${r.emoji} ${r.users.length}</span>`;
+                    });
+                    html += '</div>';
+                }
+                
+                const time = new Date(msg.time).toLocaleTimeString('ru', { hour: '2-digit', minute: '2-digit' });
+                html += `<div class="message-time">${time}${msg.edited ? '<span class="message-edited"> изменено</span>' : ''}</div>`;
+                
+                d.innerHTML = html;
+                
+                // Long press for menu
+                let pressTimer;
+                d.addEventListener('touchstart', (e) => {
+                    pressTimer = setTimeout(() => showMessageMenu(msg), 500);
+                });
+                d.addEventListener('touchend', () => clearTimeout(pressTimer));
+                d.addEventListener('touchmove', () => clearTimeout(pressTimer));
+                
+                container.appendChild(d);
+            });
+            
+            container.scrollTop = container.scrollHeight;
+        }
+        
+        function showMessageMenu(msg) {
+            const menu = document.createElement('div');
+            menu.className = 'message-menu';
+            
+            let html = `
+                <div class="message-menu-reactions">
+                    <button class="reaction-btn" onclick="react('${msg.id}','👍');closeMenu()">👍</button>
+                    <button class="reaction-btn" onclick="react('${msg.id}','❤️');closeMenu()">❤️</button>
+                    <button class="reaction-btn" onclick="react('${msg.id}','😂');closeMenu()">😂</button>
+                    <button class="reaction-btn" onclick="react('${msg.id}','😮');closeMenu()">😮</button>
+                </div>
+                <button class="message-menu-btn" onclick="reply('${msg.id}','${(msg.text||'Вложение').replace(/'/g,"\\'").replace(/"/g,'&quot;')}');closeMenu()">
+                    <span style="font-size:20px">↩️</span> Ответить
+                </button>
+            `;
+            
+            if (msg.sent && !msg.deleted && msg.text) {
+                html += `<button class="message-menu-btn" onclick="editMsg('${msg.id}');closeMenu()">
+                    <span style="font-size:20px">✏️</span> Изменить
+                </button>`;
+            }
+            
+            if (msg.sent && !msg.deleted) {
+                html += `<button class="message-menu-btn danger" onclick="deleteMsg('${msg.id}');closeMenu()">
+                    <span style="font-size:20px">🗑️</span> Удалить
+                </button>`;
+            }
+            
+            html += `<button class="message-menu-btn" onclick="closeMenu()">Отмена</button>`;
+            
+            menu.innerHTML = html;
+            document.body.appendChild(menu);
+            
+            setTimeout(() => {
+                document.addEventListener('touchstart', handleOutsideClick);
+            }, 100);
+        }
+        
+        function handleOutsideClick(e) {
+            if (!e.target.closest('.message-menu')) {
+                closeMenu();
+            }
+        }
+        
+        function closeMenu() {
+            const menu = document.querySelector('.message-menu');
+            if (menu) menu.remove();
+            document.removeEventListener('touchstart', handleOutsideClick);
+        }
+        
+        function reply(id, text) {
+            replyTo = { id, text };
+            document.getElementById('replyPreview').classList.add('show');
+            document.querySelector('.reply-content').textContent = text.substring(0, 100);
+            document.getElementById('messageInput').focus();
+        }
+        
+        function cancelReply() {
+            replyTo = null;
+            document.getElementById('replyPreview').classList.remove('show');
+        }
+        
+        async function sendMessage() {
+            const input = document.getElementById('messageInput');
+            const text = input.value.trim();
+            
+            if (!text && !imageData) return;
+            if (!currentChat) return;
+            
+            const url = currentChatData?.isGroup ? `/group/${currentChat}/sendMessage` : '/sendMessage';
+            
+            await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: token },
+                body: JSON.stringify({ chatId: currentChat, text, image: imageData, replyTo })
+            });
+            
+            input.value = '';
+            input.style.height = 'auto';
+            imageData = null;
+            cancelReply();
+            document.getElementById('imagePreview').style.display = 'none';
+        }
+        
+        async function react(msgId, emoji) {
+            await fetch('/react', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: token },
+                body: JSON.stringify({ messageId: msgId, chatId: currentChat, emoji })
+            });
+            loadMessages(currentChat);
+        }
+        
+        function editMsg(msgId) {
+            const msgEl = document.querySelector(`[data-id="${msgId}"]`);
+            const text = msgEl.querySelector('.message-text')?.textContent || '';
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Редактировать</h2>
+                    <textarea id="editText">${text}</textarea>
+                    <div class="modal-buttons">
+                        <button class="modal-btn cancel" onclick="this.closest('.modal').remove()">Отмена</button>
+                        <button class="modal-btn save" onclick="saveEdit('${msgId}')">Сохранить</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = e => { if (e.target === modal) modal.remove(); };
+        }
+        
+        async function saveEdit(msgId) {
+            const text = document.getElementById('editText').value.trim();
+            if (!text) return;
+            
+            await fetch(`/message/${msgId}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json', Authorization: token },
+                body: JSON.stringify({ chatId: currentChat, text })
+            });
+            
+            document.querySelector('.modal').remove();
+            loadMessages(currentChat);
+        }
+        
+        async function deleteMsg(msgId) {
+            if (!confirm('Удалить сообщение?')) return;
+            
+            await fetch(`/message/${msgId}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json', Authorization: token },
+                body: JSON.stringify({ chatId: currentChat })
+            });
+            
+            loadMessages(currentChat);
+        }
+        
+        function viewImage(src) {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `<img src="${src}" style="max-width:90%;max-height:90vh;border-radius:8px">`;
+            document.body.appendChild(modal);
+            modal.onclick = () => modal.remove();
+        }
+        
+        async function openProfile() {
+            if (currentChatData?.isGroup) {
+                location.href = `group-settings.html?id=${currentChat}`;
+                return;
+            }
+            
+            const res = await fetch(`/profile/${currentChat}`, { headers: { Authorization: token } });
+            const p = await res.json();
+            
+            const blocked = settings.blockedUsers.includes(currentChat);
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content" style="text-align:center">
+                    <img src="${p.avatar || 'default-avatar.png'}" style="width:120px;height:120px;border-radius:50%;object-fit:cover;margin:0 auto 20px">
+                    <h2>${p.firstName || ''} ${p.lastName || ''}</h2>
+                    <p style="color:#0088cc;margin-bottom:16px">@${p.username}</p>
+                    <p style="background:#f5f5f5;padding:12px;border-radius:8px;margin-bottom:20px;color:#666">${p.bio || 'Нет описания'}</p>
+                    <button onclick="toggleBlock('${currentChat}')" style="width:100%;padding:14px;margin:8px 0;background:#f5f5f5;border:none;border-radius:8px;cursor:pointer;font-size:15px;${blocked ? '' : 'color:#dc3545'}">${blocked ? '🔓 Разблокировать' : '🔒 Заблокировать'}</button>
+                    <button onclick="this.closest('.modal').remove()" style="width:100%;padding:14px;margin:8px 0;background:#e0e0e0;border:none;border-radius:8px;cursor:pointer;font-size:15px">Закрыть</button>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = e => { if (e.target === modal) modal.remove(); };
+        }
+        
+        function toggleBlock(uid) {
+            const idx = settings.blockedUsers.indexOf(uid);
+            if (idx > -1) {
+                settings.blockedUsers.splice(idx, 1);
+                showNotif('Разблокировано', 'Пользователь разблокирован');
+            } else {
+                settings.blockedUsers.push(uid);
+                showNotif('Заблокировано', 'Пользователь заблокирован');
+                if (currentChat === uid) closeChat();
+            }
+            localStorage.setItem('blockedUsers', JSON.stringify(settings.blockedUsers));
+            document.querySelector('.modal')?.remove();
+            loadChats();
+        }
+        
+        function createGroup() {
+            const modal = document.createElement('div');
+            modal.className = 'modal';
+            modal.style.display = 'flex';
+            modal.innerHTML = `
+                <div class="modal-content">
+                    <h2>Создать группу</h2>
+                    <input type="text" id="groupName" placeholder="Название">
+                    <textarea id="groupDesc" placeholder="Описание"></textarea>
+                    <input type="file" id="groupAvatar" accept="image/*">
+                    <div class="modal-buttons">
+                        <button class="modal-btn cancel" onclick="this.closest('.modal').remove()">Отмена</button>
+                        <button class="modal-btn save" onclick="saveGroup()">Создать</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = e => { if (e.target === modal) modal.remove(); };
+        }
+        
+        async function saveGroup() {
+            const name = document.getElementById('groupName').value.trim();
+            if (!name) return showNotif('Ошибка', 'Введите название');
+            
+            const desc = document.getElementById('groupDesc').value.trim();
+            const file = document.getElementById('groupAvatar').files[0];
+            
+            let avatar = null;
+            if (file) {
+                avatar = await new Promise(r => {
+                    const reader = new FileReader();
+                    reader.onload = e => r(e.target.result);
+                    reader.readAsDataURL(file);
+                });
+            }
+            
+            await fetch('/createGroup', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json', Authorization: token },
+                body: JSON.stringify({ name, description: desc, avatar })
+            });
+            
+            document.querySelector('.modal').remove();
+            showNotif('Успешно', 'Группа создана');
+            currentTab = 'groups';
+            document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+            document.querySelector('[data-tab="groups"]').classList.add('active');
+            loadChats();
+        }
+        
+        async function searchUser() {
+            const q = document.getElementById('search').value.trim();
+            if (!q) return;
+            
+            const res = await fetch(`/search?username=${q}`, { headers: { Authorization: token } });
+            const u = await res.json();
+            
+            if (u) {
+                if (settings.blockedUsers.includes(u.id)) {
+                    showNotif('Заблокировано', 'Вы заблокировали этого пользователя');
+                    return;
+                }
+                
+                const addRes = await fetch('/addChat', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json', Authorization: token },
+                    body: JSON.stringify({ username: u.username })
+                });
+                
+                const data = await addRes.json();
+                
+                if (data.blocked) {
+                    showNotif('Вы заблокированы', 'Этот пользователь заблокировал вас');
+                } else {
+                    loadChats();
+                    document.getElementById('search').value = '';
+                    showNotif('Успешно', 'Чат добавлен');
+                }
+            } else {
+                showNotif('Ошибка', 'Не найдено');
+            }
+        }
+        
+        function removeImage() {
+            imageData = null;
+            document.getElementById('imagePreview').style.display = 'none';
+            document.getElementById('imageInput').value = '';
+        }
+        
+        function showNotif(title, body) {
+            if (Notification.permission === 'granted') {
+                new Notification(title, { body, icon: 'favicon.png' });
+            }
+            
+            const n = document.createElement('div');
+            n.className = 'notification';
+            n.innerHTML = `<div class="notification-title">${title}</div><div class="notification-body">${body}</div>`;
+            document.body.appendChild(n);
+            setTimeout(() => n.remove(), 3000);
+        }
+        
+        function playSound() {
+            if (localStorage.getItem('soundNotifications') === 'false') return;
+            const a = new Audio('data:audio/wav;base64,UklGRnoGAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQoGAACBhYqFbF1fdJivrJBhNjVgodDbq2EcBj+a2/LDciUFLIHO8tiJNwgZaLvt559NEAxQp+PwtmMcBjiR1/LMeSwFJHfH8N2QQA==');
+            a.play().catch(() => {});
+        }
+        
+        document.getElementById('search').addEventListener('keypress', e => { if (e.key === 'Enter') searchUser(); });
+        document.getElementById('sendBtn').onclick = sendMessage;
+        document.getElementById('messageInput').addEventListener('keydown', e => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+                e.preventDefault();
+                sendMessage();
+            }
+        });
+        
+        document.getElementById('messageInput').addEventListener('input', function() {
+            this.style.height = 'auto';
+            this.style.height = Math.min(this.scrollHeight, 120) + 'px';
+            
+            if (currentChat && socket && !currentChatData?.isGroup) {
+                socket.emit('typing', { chatId: currentChat });
+                clearTimeout(this.typingTimer);
+                this.typingTimer = setTimeout(() => socket.emit('stop-typing', { chatId: currentChat }), 1000);
+            }
+        });
+        
+        document.getElementById('imageInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (file && file.type.startsWith('image/')) {
+                const reader = new FileReader();
+                reader.onload = ev => {
+                    imageData = ev.target.result;
+                    document.getElementById('previewImg').src = imageData;
+                    document.getElementById('imagePreview').style.display = 'block';
+                };
+                reader.readAsDataURL(file);
+            }
+        });
+        
+        document.querySelectorAll('.tab').forEach(tab => {
+            tab.onclick = () => {
+                document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+                tab.classList.add('active');
+                currentTab = tab.getAttribute('data-tab');
+                loadChats();
+            };
+        });
+        
+        if (Notification.permission === 'default') Notification.requestPermission();
+        
+        // ========== WEBRTC VOICE CALLS ==========
+        let voiceCall = {
+            peerConnection: null,
+            localStream: null,
+            remoteStream: null,
+            currentCall: null,
+            callTimer: null,
+            callStartTime: null,
+            iceServers: {
+                iceServers: [
+                    { urls: 'stun:stun.l.google.com:19302' },
+                    { urls: 'turn:free.expressturn.com:3478', username: '000000002086526327', credential: 'HrYF68czK+JNao1cJxLqdQdRLZU=' }
+                ]
+            }
+        };
+        
+        socket.on('incoming-call', (data) => {
+            voiceCall.currentCall = { from: data.from, fromName: data.fromName, fromAvatar: data.fromAvatar, isIncoming: true };
+            showIncomingCall(data);
+        });
+        
+        socket.on('call-accepted', async (data) => { await handleCallAccepted(data); });
+        socket.on('call-rejected', () => { endVoiceCall(); showNotif('Звонок отклонён', 'Абонент отклонил звонок'); });
+        socket.on('call-ended', () => { endVoiceCall(); });
+        
+        socket.on('webrtc-offer', async (data) => { await handleWebRTCOffer(data); });
+        socket.on('webrtc-answer', async (data) => { await handleWebRTCAnswer(data); });
+        socket.on('webrtc-ice', async (data) => {
+            if (voiceCall.peerConnection && data.candidate) {
+                await voiceCall.peerConnection.addIceCandidate(new RTCIceCandidate(data.candidate));
+            }
+        });
+        
+        async function startVoiceCall() {
+            if (!currentChat || currentChatData?.isGroup) return;
+            try {
+                voiceCall.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                voiceCall.currentCall = { to: currentChat, toName: (currentChatData.firstName + ' ' + currentChatData.lastName).trim() || currentChatData.username, toAvatar: currentChatData.avatar, isIncoming: false };
+                showOutgoingCall();
+                const res = await fetch('/profile', { headers: { Authorization: token } });
+                const myProfile = await res.json();
+                socket.emit('start-call', { to: currentChat, fromName: `${myProfile.firstName || ''} ${myProfile.lastName || ''}`.trim() || myProfile.username, fromAvatar: myProfile.avatar || 'default-avatar.png' });
+            } catch (err) {
+                showNotif('Ошибка', 'Нет доступа к микрофону');
+            }
+        }
+        
+        function showIncomingCall(data) {
+            const m = document.createElement('div');
+            m.id = 'incomingCallModal';
+            m.className = 'modal';
+            m.style.display = 'flex';
+            m.innerHTML = `<div class="modal-content" style="text-align:center;background:#1a1a1a;color:white;padding:40px;border-radius:20px;max-width:90%"><img src="${data.fromAvatar}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;margin-bottom:15px;border:3px solid #4caf50"><h2 style="margin-bottom:8px;font-size:24px;color:white">${data.fromName}</h2><p style="color:#aaa;margin-bottom:30px;font-size:16px;animation:pulse 1.5s infinite">Входящий звонок...</p><div style="display:flex;gap:20px;justify-content:center"><button onclick="rejectCall()" style="width:60px;height:60px;border-radius:50%;background:#dc3545;border:none;cursor:pointer;font-size:28px">📵</button><button onclick="acceptCall()" style="width:60px;height:60px;border-radius:50%;background:#4caf50;border:none;cursor:pointer;font-size:28px;animation:bounce 1s infinite">📞</button></div></div>`;
+            document.body.appendChild(m);
+        }
+        
+        function showOutgoingCall() {
+            const m = document.createElement('div');
+            m.id = 'callModal';
+            m.className = 'modal';
+            m.style.display = 'flex';
+            m.innerHTML = `<div class="modal-content" style="text-align:center;background:#1a1a1a;color:white;padding:40px;border-radius:20px;max-width:90%"><img src="${voiceCall.currentCall.toAvatar}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;margin-bottom:15px"><h2 style="margin-bottom:8px;font-size:24px;color:white">${voiceCall.currentCall.toName}</h2><p style="color:#aaa;margin-bottom:30px;font-size:16px">Вызов...</p><button onclick="endVoiceCall()" style="width:60px;height:60px;border-radius:50%;background:#dc3545;border:none;cursor:pointer;font-size:28px">📵</button></div>`;
+            document.body.appendChild(m);
+        }
+        
+        function showActiveCall() {
+            const e = document.getElementById('callModal') || document.getElementById('incomingCallModal');
+            if (e) e.remove();
+            const m = document.createElement('div');
+            m.id = 'callModal';
+            m.className = 'modal';
+            m.style.display = 'flex';
+            const n = voiceCall.currentCall.isIncoming ? voiceCall.currentCall.fromName : voiceCall.currentCall.toName;
+            const a = voiceCall.currentCall.isIncoming ? voiceCall.currentCall.fromAvatar : voiceCall.currentCall.toAvatar;
+            m.innerHTML = `<div class="modal-content" style="text-align:center;background:#1a1a1a;color:white;padding:40px;border-radius:20px;max-width:90%"><img src="${a}" style="width:100px;height:100px;border-radius:50%;object-fit:cover;margin-bottom:15px"><h2 style="margin-bottom:8px;font-size:24px;color:white">${n}</h2><p style="color:#4caf50;margin-bottom:8px;font-size:14px">● Идёт разговор</p><div id="callTimer" style="color:#aaa;font-size:20px;margin-bottom:30px;font-family:monospace">00:00</div><button onclick="endVoiceCall()" style="width:60px;height:60px;border-radius:50%;background:#dc3545;border:none;cursor:pointer;font-size:28px">📵</button></div><audio id="remoteAudio" autoplay></audio>`;
+            document.body.appendChild(m);
+            startCallTimer();
+        }
+        
+        async function acceptCall() {
+            try {
+                voiceCall.localStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                socket.emit('accept-call', { to: voiceCall.currentCall.from });
+                document.getElementById('incomingCallModal').remove();
+                showActiveCall();
+            } catch (err) {
+                showNotif('Ошибка', 'Нет доступа к микрофону');
+                rejectCall();
+            }
+        }
+        
+        function rejectCall() {
+            socket.emit('reject-call', { to: voiceCall.currentCall.from });
+            endVoiceCall();
+        }
+        
+        async function handleCallAccepted(data) {
+            await createPeerConnection();
+            voiceCall.localStream.getTracks().forEach(track => voiceCall.peerConnection.addTrack(track, voiceCall.localStream));
+            const offer = await voiceCall.peerConnection.createOffer();
+            await voiceCall.peerConnection.setLocalDescription(offer);
+            socket.emit('webrtc-offer', { to: voiceCall.currentCall.to, offer: offer });
+            showActiveCall();
+        }
+        
+        async function handleWebRTCOffer(data) {
+            await createPeerConnection();
+            voiceCall.localStream.getTracks().forEach(track => voiceCall.peerConnection.addTrack(track, voiceCall.localStream));
+            await voiceCall.peerConnection.setRemoteDescription(new RTCSessionDescription(data.offer));
+            const answer = await voiceCall.peerConnection.createAnswer();
+            await voiceCall.peerConnection.setLocalDescription(answer);
+            socket.emit('webrtc-answer', { to: data.from, answer: answer });
+        }
+        
+        async function handleWebRTCAnswer(data) {
+            await voiceCall.peerConnection.setRemoteDescription(new RTCSessionDescription(data.answer));
+        }
+        
+        async function createPeerConnection() {
+            voiceCall.peerConnection = new RTCPeerConnection(voiceCall.iceServers);
+            voiceCall.peerConnection.onicecandidate = (event) => {
+                if (event.candidate) {
+                    const to = voiceCall.currentCall.isIncoming ? voiceCall.currentCall.from : voiceCall.currentCall.to;
+                    socket.emit('webrtc-ice', { to: to, candidate: event.candidate });
+                }
+            };
+            voiceCall.peerConnection.ontrack = (event) => {
+                voiceCall.remoteStream = event.streams[0];
+                const audio = document.getElementById('remoteAudio');
+                if (audio) audio.srcObject = voiceCall.remoteStream;
+            };
+            voiceCall.peerConnection.onconnectionstatechange = () => {
+                if (voiceCall.peerConnection.connectionState === 'disconnected' || voiceCall.peerConnection.connectionState === 'failed') endVoiceCall();
+            };
+        }
+        
+        function endVoiceCall() {
+            if (voiceCall.localStream) {
+                voiceCall.localStream.getTracks().forEach(track => {
+                    track.stop();
+                    track.enabled = false;
+                });
+                voiceCall.localStream = null;
+            }
+            const remoteAudio = document.getElementById('remoteAudio');
+            if (remoteAudio) {
+                remoteAudio.srcObject = null;
+                remoteAudio.pause();
+            }
+            if (voiceCall.peerConnection) {
+                voiceCall.peerConnection.ontrack = null;
+                voiceCall.peerConnection.onicecandidate = null;
+                voiceCall.peerConnection.onconnectionstatechange = null;
+                voiceCall.peerConnection.close();
+                voiceCall.peerConnection = null;
+            }
+            if (voiceCall.currentCall) {
+                const to = voiceCall.currentCall.isIncoming ? voiceCall.currentCall.from : voiceCall.currentCall.to;
+                if (to) socket.emit('end-call', { to: to });
+            }
+            if (voiceCall.callTimer) {
+                clearInterval(voiceCall.callTimer);
+                voiceCall.callTimer = null;
+            }
+            voiceCall.currentCall = null;
+            const m = document.getElementById('callModal');
+            if (m) m.remove();
+            const i = document.getElementById('incomingCallModal');
+            if (i) i.remove();
+        }
+        
+        function startCallTimer() {
+            voiceCall.callStartTime = Date.now();
+            voiceCall.callTimer = setInterval(() => {
+                const elapsed = Math.floor((Date.now() - voiceCall.callStartTime) / 1000);
+                const minutes = Math.floor(elapsed / 60);
+                const seconds = elapsed % 60;
+                const timer = document.getElementById('callTimer');
+                if (timer) timer.textContent = `${minutes.toString().padStart(2,'0')}:${seconds.toString().padStart(2,'0')}`;
+            }, 1000);
+        }
+        
+        function updateCallButton() {
+            const btn = document.getElementById('callBtn');
+            if (btn) btn.style.display = (currentChat && !currentChatData?.isGroup) ? 'block' : 'none';
+        }
+        
+        initSocket();
+        loadChats();
+        setInterval(loadChats, 30000);
+    </script>
+</body>
+</html>

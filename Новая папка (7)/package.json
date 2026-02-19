@@ -1,0 +1,17 @@
+{
+  "name": "mimigram",
+  "version": "3.0.0",
+  "description": "MIMIgram - Продвинутый мессенджер с группами, приватностью и функциями социальной сети",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "socket.io": "^4.6.1",
+    "body-parser": "^1.20.2"
+  },
+  "keywords": ["messenger", "chat", "websocket", "groups"],
+  "author": "MIMIgram Team",
+  "license": "MIT"
+}
